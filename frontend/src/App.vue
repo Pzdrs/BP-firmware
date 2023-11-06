@@ -1,7 +1,7 @@
 <script setup>
 
-import axios from "axios";
 import WifiIcon from "./components/WifiIcon.vue";
+import CellularIcon from "./components/CellularIcon.vue";
 
 </script>
 
@@ -17,6 +17,7 @@ import WifiIcon from "./components/WifiIcon.vue";
 
       <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
         <WifiIcon :connected="true" :rssi="-30"/>
+        <CellularIcon :connected="true"/>
       </ul>
 
       <div class="col-md-3 text-end">

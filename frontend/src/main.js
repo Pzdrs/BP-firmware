@@ -4,11 +4,13 @@ import App from './App.vue'
 
 import {OhVueIcon, addIcons} from "oh-vue-icons";
 import {
+    MdSignalcellularalt, MdSignalcellularoff,
     MdWifi, MdWifi1Bar, MdWifi2Bar, MdWifioff
 } from "oh-vue-icons/icons/md";
 
 addIcons(
-    MdWifi, MdWifi1Bar, MdWifi2Bar, MdWifioff
+    MdSignalcellularalt, MdSignalcellularoff,
+    MdWifi, MdWifi1Bar, MdWifi2Bar, MdWifioff,
 );
 
 const app = createApp(App)
