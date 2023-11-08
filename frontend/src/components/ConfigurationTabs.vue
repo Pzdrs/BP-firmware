@@ -9,16 +9,6 @@ const tabs = [
     label: 'Connectivity',
     icon: 'md-comparearrows'
   },
-  {
-    id: 'nevym',
-    label: 'nevym',
-    icon: 'md-comparearrows'
-  },
-  {
-    id: 'kokod',
-    label: 'kokod',
-    icon: 'md-comparearrows'
-  }
 ];
 
 function isCurrentTab(tabId) {
