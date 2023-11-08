@@ -2,6 +2,8 @@
 
 import WifiIcon from "./components/WifiIcon.vue";
 import CellularIcon from "./components/CellularIcon.vue";
+import ConfigurationTabs from "./components/ConfigurationTabs.vue";
+import ConnectivitySection from "./components/configuration-section/ConnectivitySection.vue";
 
 </script>
 
@@ -16,7 +18,7 @@ import CellularIcon from "./components/CellularIcon.vue";
       </div>
 
       <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
-        <WifiIcon :connected="true" :rssi="-30"/>
+        <WifiIcon :connected="true" :rssi="-50"/>
         <CellularIcon :connected="true"/>
       </ul>
 
@@ -26,7 +28,22 @@ import CellularIcon from "./components/CellularIcon.vue";
     </header>
   </div>
   <div class="container">
-    whats good
+    <div class="row justify-content-center">
+      <div class="col-10">
+        <ConfigurationTabs current-tab="connectivity"/>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="connectivity" role="tabpanel">
+            <div class="container mt-3">
+              <div class="row">
+                <ConnectivitySection/>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="nevym" role="tabpanel">nevym</div>
+          <div class="tab-pane fade" id="kokod" role="tabpanel">kokod</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
