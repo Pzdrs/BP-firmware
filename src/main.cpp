@@ -66,6 +66,9 @@ void setup() {
 
     Serial.println(WiFi.localIP());
 
+    // Initial wifi scan
+    WiFi.scanNetworks(true);
+
     setupWebServer();
 }
 
