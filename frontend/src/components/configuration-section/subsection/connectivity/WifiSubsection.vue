@@ -1,44 +1,34 @@
 <script setup>
-import {nextTick, onMounted, reactive, ref} from "vue";
+import {nextTick, reactive, ref} from "vue";
 import WifiNetworkLogin from "../../../modal/WifiNetworkLogin.vue";
-import {rssiToBootstrapBackground} from "../../../../utils/wifi";
+import {getAvailableNetworks, rssiToBootstrapBackground} from "../../../../utils/wifi";
 import {Modal} from 'bootstrap'
 
-const currentNetwork = ref('');
-
 const wifiEnabled = ref(true);
+const currentNetwork = ref('');
+const networks = reactive([]);
 
-const networks = reactive([
-  {
-    ssid: 'IOT',
-    security: 'WPA2',
-    rssi: -35,
-    connected: true
-  },
-  {
-    ssid: 'Guest',
-    security: 'WPA2',
-    rssi: -75,
-    connected: false
-  },
-  {
-    ssid: 'Home Wifi',
-    security: 'WPA2',
-    rssi: -96,
-    connected: false
-  }
-]);
+const loading = ref(false);
 
-function setCurrentNetwork(network) {
+
+function scanNetworks() {
+  // Clear the networks list
+  networks.splice(0, networks.length);
+  loading.value = true;
+  getAvailableNetworks((_networks) => {
+    loading.value = false;
+    networks.push(..._networks);
+  });
+}
+
+function openNetworkModal(network) {
   currentNetwork.value = network;
   nextTick(() => new Modal(document.getElementById('wifiNetworkModal')).show());
 }
 
-function refresh() {
-  console.log('refresh');
-}
-
 function changeWifiState() {
+  // If turning the Wi-Fi on for the first time, automatically scan networks
+  if (!wifiEnabled.value && networks.length === 0) scanNetworks();
   wifiEnabled.value = !wifiEnabled.value;
 }
 
@@ -53,27 +43,36 @@ function changeWifiState() {
       </div>
     </div>
     <div v-if="wifiEnabled" class="col text-end">
-      <button @click="refresh" class="btn btn-outline-secondary">
+      <button @click="scanNetworks" class="btn btn-outline-secondary" :disabled="loading">
         <Icon name="hi-refresh"/>
         Refresh networks
       </button>
     </div>
   </div>
-  <ul v-if="wifiEnabled" class="list-group mt-3">
-    <li v-for="network in networks" :key="network.ssid"
-        @click="setCurrentNetwork(network.ssid)"
-        class="list-group-item wifi-list-item d-flex justify-content-between">
-      <div>
-        <span class="fw-bold d-inline-block me-1">{{ network.ssid }}</span>
-        <span class="badge bg-secondary rounded-pill">{{ network.security }}</span>
+
+  <section>
+    <div class="text-center spinner-overlay" v-if="loading">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
       </div>
-      <div>
-        <span v-if="network.connected" class="badge rounded-pill align-baseline bg-success me-1">Connected</span>
-        <span class="badge rounded-pill align-baseline"
-              :class="rssiToBootstrapBackground(network.rssi)">{{ network.rssi }} dBm</span>
-      </div>
-    </li>
-  </ul>
+    </div>
+
+    <ul v-if="wifiEnabled" class="list-group mt-3">
+      <li v-for="network in networks" :key="network.ssid"
+          @click="openNetworkModal(network.ssid)"
+          class="list-group-item wifi-list-item d-flex justify-content-between">
+        <div>
+          <span class="fw-bold d-inline-block me-1">{{ network.ssid }}</span>
+          <span class="badge bg-secondary rounded-pill">{{ network.security }}</span>
+        </div>
+        <div>
+          <span v-if="network.connected" class="badge rounded-pill align-baseline bg-success me-1">Connected</span>
+          <span class="badge rounded-pill align-baseline"
+                :class="rssiToBootstrapBackground(network.rssi)">{{ network.rssi }} dBm</span>
+        </div>
+      </li>
+    </ul>
+  </section>
   <WifiNetworkLogin :network="currentNetwork" :networks="networks"/>
 </template>
 
@@ -85,4 +84,13 @@ function changeWifiState() {
 .wifi-list-item:hover {
   background-color: #f8f9fa;
 }
+
+.spinner-overlay {
+  position: absolute;
+  z-index: 1000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 </style>

@@ -36,7 +36,8 @@ function handleSubmit(event) {
           <div class="modal-header">
             <h5 class="modal-title">
               {{ network.ssid }}
-              <span class="badge bg-secondary rounded-pill">{{ network.security }}</span>
+              <span class="badge bg-secondary rounded-pill mx-1">{{ network.security }}</span>
+              <span class="badge rounded-pill align-baseline bg-primary" title="Network channel">{{ network.channel }}</span>
             </h5>
             <div>
               <span class="badge rounded-pill align-baseline align-top"

@@ -1,3 +1,19 @@
+import {scanWifiNetworks} from "../axios/endpoints";
+
+const SECURITY_MODES = [
+    'OPEN',
+    'WEP',
+    'WPA_PSK',
+    'WPA2_PSK',
+    'WPA_WPA2_PSK',
+    'WPA2_ENTERPRISE',
+    'WPA3_PSK',
+    'WPA2_WPA3_PSK',
+    'WAPI_PSK',
+    'MAX'
+];
+
+
 const BAD_RSSI = -80;
 const GOOD_RSSI = -55;
 
@@ -27,4 +43,28 @@ export function rssiToColor(rssi) {
 export function rssiToBootstrapBackground(rssi) {
     const level = normalizeRSSI(rssi);
     return COLORS[level][1];
+}
+
+function filterNetworks(networks) {
+    return networks.filter((network) => {
+        return true;
+    });
+}
+
+function transformNetwork(network) {
+    return {
+        ssid: network['ssid'],
+        rssi: network['rssi'],
+        mac: network['bssid'],
+        security: SECURITY_MODES[network['secure']],
+        channel: network['channel'],
+        connected: false
+    }
+}
+
+export function getAvailableNetworks(callback) {
+    scanWifiNetworks.get().then((response) => {
+        const networks = response.data.map(transformNetwork);
+        callback(filterNetworks(networks));
+    });
 }
