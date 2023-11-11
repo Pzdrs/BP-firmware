@@ -46,9 +46,24 @@ export function rssiToBootstrapBackground(rssi) {
 }
 
 function filterNetworks(networks) {
-    return networks.filter((network) => {
-        return true;
+    // Sort networks by SSID and then by RSSI in descending order
+    networks.sort((a, b) => {
+        if (a.ssid !== b.ssid) {
+            return a.ssid.localeCompare(b.ssid);
+        } else {
+            return b.rssi - a.rssi;
+        }
     });
+
+    // Filter out networks with lower RSSI for each unique SSID
+    const uniqueNetworks = [];
+    for (const network of networks) {
+        if (network.connected || !uniqueNetworks.some((unique) => unique.ssid === network.ssid)) {
+            uniqueNetworks.push(network);
+        }
+    }
+
+    return uniqueNetworks;
 }
 
 function transformNetwork(network) {
@@ -58,13 +73,20 @@ function transformNetwork(network) {
         mac: network['bssid'],
         security: SECURITY_MODES[network['secure']],
         channel: network['channel'],
-        connected: false
+        connected: network['connected']
     }
 }
 
 export function getAvailableNetworks(callback) {
     scanWifiNetworks.get().then((response) => {
-        const networks = response.data.map(transformNetwork);
-        callback(filterNetworks(networks));
+        const networks = filterNetworks(response.data.map(transformNetwork));
+        // Sorting (the current connected network goes first, then descending RSSI)
+        callback(networks.sort((a, b) => {
+            if (a.connected !== b.connected) {
+                return b.connected - a.connected;
+            } else {
+                return b.rssi - a.rssi;
+            }
+        }));
     });
 }
