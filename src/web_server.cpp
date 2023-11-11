@@ -1,8 +1,6 @@
 #include <LittleFS.h>
 #include "ESPAsyncWebServer.h"
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
+#include "endpoint_handlers/wifi_endpoint_handlers.hpp"
 
 AsyncWebServer server(80);
 
@@ -10,38 +8,30 @@ void home(AsyncWebServerRequest *request) {
     request->send(LittleFS, "/index.html", "text/html");
 }
 
-void api(AsyncWebServerRequest *request) {
-    /**
-     * API JSON endpoint that displays health information
-     */
-    AsyncResponseStream *response = request->beginResponseStream("application/json");
-    response->print(R"({"status": "OK"})");
-    request->send(response);
+String api(const String &route) {
+    return "/api" + route;
 }
 
-void scan_wifi(AsyncWebServerRequest *request) {
-       json networks;
-    int n = WiFi.scanComplete();
-    if (n) {
-        for (int i = 0; i < n; ++i) {
-            networks.push_back({
-                {"rssi", WiFi.RSSI(i)},
-                {"ssid", WiFi.SSID(i).c_str()},
-                {"bssid", WiFi.BSSIDstr(i).c_str()},
-                {"channel", WiFi.channel(i)},
-                {"secure", WiFi.encryptionType(i)}
-            });
-        }
-    }
-    request->send(200, "application/json", networks.dump().c_str());
+String wl(const String &route) {
+    return api("/wifi" + route);
 }
 
 void attachWebRoutes() {
+    // CORS preflight workaround
+    server.on("*", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+        request->send(200);
+    });
+
     // The main front end entry point
     server.on("/", HTTP_GET, home);
 
     // API endpoints
-    server.on("/api/wifi/scan", HTTP_GET, scan_wifi);
+    server.on(wl("/refresh").c_str(), HTTP_POST, refreshNetworks);
+    server.on(wl("/disconnect").c_str(), HTTP_POST, disconnectWifi);
+    server.on(wl("/connect").c_str(), HTTP_POST, connectWifi);
+    server.on(wl("/toggle-state").c_str(), HTTP_POST, toggleWifi);
+    server.on(wl("").c_str(), HTTP_GET, wifiStatus);
+
 
     // Static content
     server.serveStatic("/assets", LittleFS, "/assets");
