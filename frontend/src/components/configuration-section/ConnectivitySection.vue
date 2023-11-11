@@ -14,7 +14,7 @@ const subsections = [
     id: 'wifi',
     label: 'WiFi settings',
     component: WifiSubsection,
-    open: false
+    open: true
   },
 ];
 

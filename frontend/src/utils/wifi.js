@@ -1,4 +1,4 @@
-import {scanWifiNetworks} from "../axios/endpoints";
+import {wifiEndpoint} from "../axios/endpoints";
 
 const SECURITY_MODES = [
     'OPEN',
@@ -71,22 +71,25 @@ function transformNetwork(network) {
         ssid: network['ssid'],
         rssi: network['rssi'],
         mac: network['bssid'],
-        security: SECURITY_MODES[network['secure']],
+        encryption: SECURITY_MODES[network['encryption']],
         channel: network['channel'],
         connected: network['connected']
     }
 }
 
-export function getAvailableNetworks(callback) {
-    scanWifiNetworks.get().then((response) => {
-        const networks = filterNetworks(response.data.map(transformNetwork));
+export function getWifiStatus(callback) {
+    wifiEndpoint.get().then((response) => {
+        const wifiEnabled = response.data.enabled;
+        const connectedNetwork = response.data.network;
         // Sorting (the current connected network goes first, then descending RSSI)
-        callback(networks.sort((a, b) => {
-            if (a.connected !== b.connected) {
-                return b.connected - a.connected;
-            } else {
-                return b.rssi - a.rssi;
-            }
-        }));
+        const sortedNetworks = filterNetworks(response.data.networks.map(transformNetwork))
+            .sort((a, b) => {
+                if (a.connected !== b.connected) {
+                    return b.connected - a.connected;
+                } else {
+                    return b.rssi - a.rssi;
+                }
+            });
+        callback(wifiEnabled, connectedNetwork, sortedNetworks);
     });
 }

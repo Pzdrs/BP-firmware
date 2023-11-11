@@ -1,37 +1,50 @@
 <script setup>
-import {nextTick, reactive, ref} from "vue";
+import {nextTick, onMounted, reactive, ref} from "vue";
 import WifiNetworkLogin from "../../../modal/WifiNetworkLogin.vue";
-import {getAvailableNetworks, rssiToBootstrapBackground} from "../../../../utils/wifi";
+import {getWifiStatus, rssiToBootstrapBackground} from "../../../../utils/wifi";
 import {Modal} from 'bootstrap'
+import {discoverWifiNetworksEndpoint, toggleWifiEndpoint} from "../../../../axios/endpoints";
+import Spinner from "../../../Spinner.vue";
 
-const wifiEnabled = ref(true);
-const currentNetwork = ref('');
+const wifiEnabled = ref(false);
+// Stores state so that the modal knows which network to display
+const selectedNetwork = ref('');
+// Info about the current connected network
+const connectedNetwork = reactive({});
 const networks = reactive([]);
 
 const loading = ref(false);
 
 
-function scanNetworks() {
+function init() {
   // Clear the networks list
   networks.splice(0, networks.length);
   loading.value = true;
-  getAvailableNetworks((_networks) => {
+  getWifiStatus((_wifiEnabled, _network, _networks) => {
     loading.value = false;
+    wifiEnabled.value = _wifiEnabled;
+    connectedNetwork.value = _network;
     networks.push(..._networks);
   });
 }
 
 function openNetworkModal(network) {
-  currentNetwork.value = network;
+  selectedNetwork.value = network;
   nextTick(() => new Modal(document.getElementById('wifiNetworkModal')).show());
 }
 
 function changeWifiState() {
-  // If turning the Wi-Fi on for the first time, automatically scan networks
-  if (!wifiEnabled.value && networks.length === 0) scanNetworks();
-  wifiEnabled.value = !wifiEnabled.value;
+  toggleWifiEndpoint.post().then(response => {
+    wifiEnabled.value = response.data.newState;
+  });
 }
 
+function refresh() {
+  loading.value = true;
+  discoverWifiNetworksEndpoint.post().then(() => init());
+}
+
+init();
 </script>
 
 <template>
@@ -43,7 +56,7 @@ function changeWifiState() {
       </div>
     </div>
     <div v-if="wifiEnabled" class="col text-end">
-      <button @click="scanNetworks" class="btn btn-outline-secondary" :disabled="loading">
+      <button @click="refresh" class="btn btn-outline-secondary" :disabled="loading">
         <Icon name="hi-refresh"/>
         Refresh networks
       </button>
@@ -51,19 +64,16 @@ function changeWifiState() {
   </div>
 
   <section>
-    <div class="text-center spinner-overlay" v-if="loading">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-
+    <Spinner v-if="loading"/>
     <ul v-if="wifiEnabled" class="list-group mt-3">
-      <li v-for="network in networks" :key="network.ssid"
-          @click="openNetworkModal(network.ssid)"
-          class="list-group-item wifi-list-item d-flex justify-content-between">
+      <li v-for="network in networks" :key="network.mac"
+          @click="openNetworkModal(network.mac)"
+          class="list-group-item wifi-list-item d-flex justify-content-between"
+          :title="`Channel: ${network.channel}, MAC: ${network.mac}`"
+      >
         <div>
           <span class="fw-bold d-inline-block me-1">{{ network.ssid }}</span>
-          <span class="badge bg-secondary rounded-pill">{{ network.security }}</span>
+          <span class="badge bg-secondary rounded-pill">{{ network.encryption }}</span>
         </div>
         <div>
           <span v-if="network.connected" class="badge rounded-pill align-baseline bg-success me-1">Connected</span>
@@ -73,7 +83,7 @@ function changeWifiState() {
       </li>
     </ul>
   </section>
-  <WifiNetworkLogin :network="currentNetwork" :networks="networks"/>
+  <WifiNetworkLogin :network="selectedNetwork" :networks="networks"/>
 </template>
 
 <style scoped>

@@ -1,23 +1,36 @@
 <script setup>
-import {computed} from "vue";
+import {computed, ref} from "vue";
 import {rssiToBootstrapBackground} from "../../utils/wifi";
+import {disconnectFromWifiEndpoint} from "../../axios/endpoints";
+
 
 const props = defineProps({
   network: String,
   networks: Object
 });
 
+const loading = ref(false);
+const result = ref('');
+
 const network = computed(() => {
-  return props.networks.find(_network => _network.ssid === props.network);
+  return props.networks.find(_network => _network.mac === props.network);
 });
 
 const networkSelected = computed(() => {
   return !!network.value;
 });
 
-function handleSubmit(event) {
-  if (network.value.connected) {
+const actionButtonDisabled = computed(() => {
+  return loading.value || result.value.length !== 0;
+});
 
+function handleSubmit(event) {
+  loading.value = true;
+  if (network.value.connected) {
+    disconnectFromWifiEndpoint.post().then(() => {
+      loading.value = false;
+      result.value = `Disconnected from ${network.value.ssid} network`;
+    });
   } else {
     const username = event.target.username.value;
     const password = event.target.password.value;
@@ -36,8 +49,10 @@ function handleSubmit(event) {
           <div class="modal-header">
             <h5 class="modal-title">
               {{ network.ssid }}
-              <span class="badge bg-secondary rounded-pill mx-1">{{ network.security }}</span>
-              <span class="badge rounded-pill align-baseline bg-primary" title="Network channel">{{ network.channel }}</span>
+              <span class="badge bg-secondary rounded-pill mx-1">{{ network.encryption }}</span>
+              <span class="badge rounded-pill align-baseline bg-primary" title="Network channel">{{
+                  network.channel
+                }}</span>
             </h5>
             <div>
               <span class="badge rounded-pill align-baseline align-top"
@@ -46,6 +61,9 @@ function handleSubmit(event) {
             </div>
           </div>
           <div class="modal-body">
+            <div v-if="result.length !== 0" class="alert alert-danger" role="alert">
+              {{ result }}
+            </div>
             <section v-if="network.connected">
               <p>
                 You're connected to this network
@@ -64,10 +82,22 @@ function handleSubmit(event) {
           </div>
           <div class="modal-footer">
             <section v-if="network.connected">
-              <button type="submit" class="btn btn-danger">Disconnect</button>
+              <button type="submit" class="btn btn-danger" :disabled="actionButtonDisabled">
+               <span v-if="loading">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span class="visually-hidden">Loading...</span>
+               </span>
+                Disconnect
+              </button>
             </section>
             <section v-else>
-              <button type="submit" class="btn btn-primary">Connect</button>
+              <button type="submit" class="btn btn-primary" :disabled="actionButtonDisabled">
+                <span v-if="loading">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span class="visually-hidden">Loading...</span>
+               </span>
+                Connect
+              </button>
             </section>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           </div>
