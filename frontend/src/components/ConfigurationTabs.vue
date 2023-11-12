@@ -9,6 +9,11 @@ const tabs = [
     label: 'Connectivity',
     icon: 'md-comparearrows'
   },
+  {
+    id: 'data-transmission',
+    label: 'Data transmission',
+    icon: 'md-comparearrows'
+  }
 ];
 
 function isCurrentTab(tabId) {
@@ -23,8 +28,8 @@ function isCurrentTab(tabId) {
       <button class="nav-link" :class="isCurrentTab(tab.id)?'active': ''" data-bs-toggle="tab"
               :data-bs-target="`#${tab.id}`" type="button"
               role="tab">
-        {{ tab.label }}
         <Icon :name="tab.icon" scale="1.25"/>
+        {{ tab.label }}
       </button>
     </li>
   </ul>

@@ -1,15 +1,12 @@
 <script setup>
 
-import MQTTSubsection from "./subsection/connectivity/MQTTSubsection.vue";
-import WifiSubsection from "./subsection/connectivity/WifiSubsection.vue";
 import ConfigurationSection from "../ConfigurationSection.vue";
+import MQTTSubsection from "./subsection/connectivity/MQTTSubsection.vue";
 import Subsection from "../../utils/utils";
 
 const subsections = [
-  new Subsection('mqtt', 'MQTT', MQTTSubsection),
-  new Subsection('wifi', 'WiFi settings', WifiSubsection)
+  new Subsection('mqtt2', 'MQTT', MQTTSubsection)
 ];
-
 </script>
 
 <template>
