@@ -4,7 +4,7 @@ import 'bootstrap/js/dist/tab.js'
 import 'bootstrap/js/dist/collapse.js'
 import 'bootstrap/js/dist/modal.js'
 import App from './App.vue'
-import OhVueIcon from "./icons";
+import OhVueIcon from './icons'
 
 const app = createApp(App)
 
