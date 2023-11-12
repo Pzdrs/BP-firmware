@@ -8,13 +8,13 @@ const subsections = [
     id: 'mqtt',
     label: 'MQTT',
     component: MQTTSubsection,
-    open: false
+    open: true
   },
   {
     id: 'wifi',
     label: 'WiFi settings',
     component: WifiSubsection,
-    open: true
+    open: false
   },
 ];
 
