@@ -1,30 +1,74 @@
 <script setup>
 
+import {mqttConfigEndpoint, mqttTestEndpoint} from "../../../../axios/endpoints";
 import {ref} from "vue";
 
 const DEFAULT_MQTT_PORT = 1883;
 
 const testing = ref(false);
-const testingSuccessful = ref(false);
+const dryRun = ref(false);
+const saving = ref(false);
 
+const alerts = ref([]);
 
 function handleSubmit(event) {
+  if (dryRun.value) {
+    testConnection();
+    dryRun.value = false;
+    return;
+  }
+  
+  saving.value = true;
+  alerts.value = [];
+
   const username = event.target.username.value;
   const password = event.target.password.value;
-  const serverAddress = event.target.serverAddress.value;
-  const serverPort = event.target.port.value || DEFAULT_MQTT_PORT;
+  const server = event.target.serverAddress.value;
+  const port = event.target.port.value || DEFAULT_MQTT_PORT;
+
+  mqttConfigEndpoint.post({
+    username, password, server, port
+  }).then(() => {
+    alerts.value = [{
+      message: "The configuration was saved successfully.",
+      class: "alert-success"
+    }];
+  }).catch(() => {
+    alerts.value = [{
+      message: "The configuration couldn't be saved.",
+      class: "alert-danger"
+    }];
+  }).finally(() => {
+    saving.value = false;
+  });
 }
 
 function testConnection() {
   testing.value = true;
-  setTimeout(() => {
-    testingSuccessful.value = true;
-    testing.value = false;
-  }, 1000);
+  alerts.value = [];
+  mqttTestEndpoint.get()
+      .then(response => {
+        const result = response.data.success;
+        testing.value = false;
+        if (result) {
+          alerts.value = [{
+            message: "The connection was successful.",
+            class: "alert-success"
+          }];
+        } else {
+          alerts.value = [{
+            message: "The connection failed.",
+            class: "alert-danger"
+          }];
+        }
+      });
 }
 </script>
 
 <template>
+  <div v-for="(alert, index) in alerts" :key="index" class="alert" :class="alert.class" role="alert">
+    {{ alert.message }}
+  </div>
   <form @submit.prevent="handleSubmit">
     <div class="row mb-3">
       <div class="col">
@@ -44,12 +88,11 @@ function testConnection() {
       </div>
     </div>
     <div class="text-end">
-      <button class="btn btn-info me-2" @click="testConnection">
+      <button type="submit" class="btn btn-info me-2" @click="dryRun = true">
         <span v-if="testing">
           <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           <span class="visually-hidden">Loading...</span>
         </span>
-        <Icon v-if="testingSuccessful" name="fc-checkmark"/>
         Test
       </button>
       <button type="submit" class="btn btn-primary">Save changes</button>

@@ -64,6 +64,10 @@ void setup() {
         Serial.println("Connecting to WiFi..");
     }
 
+    // setup hotspot
+    WiFi.softAPConfig(IPAddress(192, 168, 0, 1), IPAddress(192, 168, 0, 1), IPAddress(255, 255, 255, 0));
+    WiFi.softAP("ESP32-Access-Point", "123456789");
+
     Serial.println(WiFi.localIP());
 
     WiFi.scanNetworks(true);

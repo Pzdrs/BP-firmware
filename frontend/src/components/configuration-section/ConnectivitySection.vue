@@ -6,7 +6,7 @@ import ConfigurationSection from "../ConfigurationSection.vue";
 import Subsection from "../../utils/utils";
 
 const subsections = [
-  new Subsection('mqtt', 'MQTT', MQTTSubsection),
+  new Subsection('mqtt', 'MQTT', MQTTSubsection, true),
   new Subsection('wifi', 'WiFi settings', WifiSubsection)
 ];
 

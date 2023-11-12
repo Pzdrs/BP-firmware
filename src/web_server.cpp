@@ -1,6 +1,7 @@
 #include <LittleFS.h>
 #include "ESPAsyncWebServer.h"
 #include "endpoint_handlers/wifi_endpoint_handlers.hpp"
+#include "endpoint_handlers/mqtt_endpoint_handlers.hpp"
 
 AsyncWebServer server(80);
 
@@ -14,6 +15,10 @@ String api(const String &route) {
 
 String wl(const String &route) {
     return api("/wifi" + route);
+}
+
+String mqtt(const String &route) {
+    return api("/mqtt" + route);
 }
 
 void attachWebRoutes() {
@@ -31,6 +36,10 @@ void attachWebRoutes() {
     server.on(wl("/connect").c_str(), HTTP_POST, connectWifi);
     server.on(wl("/toggle-state").c_str(), HTTP_POST, toggleWifi);
     server.on(wl("").c_str(), HTTP_GET, wifiStatus);
+
+    server.on(mqtt("/test").c_str(), HTTP_GET, testMqtt);
+    server.on(mqtt("").c_str(), HTTP_GET, mqttConfig);
+    server.on(mqtt("").c_str(), HTTP_POST, updateMqttConfig);
 
 
     // Static content
