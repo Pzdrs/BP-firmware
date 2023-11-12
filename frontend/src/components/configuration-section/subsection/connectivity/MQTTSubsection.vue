@@ -17,7 +17,7 @@ function handleSubmit(event) {
     dryRun.value = false;
     return;
   }
-  
+
   saving.value = true;
   alerts.value = [];
 
