@@ -1,9 +1,9 @@
 <script setup>
-import {nextTick, onMounted, reactive, ref} from "vue";
+import {nextTick, reactive, ref} from "vue";
 import WifiNetworkLogin from "../../../modal/WifiNetworkLogin.vue";
 import {getWifiStatus, rssiToBootstrapBackground} from "../../../../utils/wifi";
 import {Modal} from 'bootstrap'
-import {discoverWifiNetworksEndpoint, toggleWifiEndpoint} from "../../../../axios/endpoints";
+import {toggleWifiEndpoint} from "../../../../axios/endpoints";
 import Spinner from "../../../Spinner.vue";
 
 const wifiEnabled = ref(false);
@@ -40,8 +40,7 @@ function changeWifiState() {
 }
 
 function refresh() {
-  loading.value = true;
-  discoverWifiNetworksEndpoint.post().then(() => init());
+
 }
 
 init();
@@ -56,7 +55,7 @@ init();
       </div>
     </div>
     <div v-if="wifiEnabled" class="col text-end">
-      <button @click="refresh" class="btn btn-outline-secondary" :disabled="loading">
+      <button @click="refresh" class="btn btn-outline-secondary" :disabled="true">
         <Icon name="hi-refresh"/>
         Refresh networks
       </button>
@@ -76,14 +75,15 @@ init();
           <span class="badge bg-secondary rounded-pill">{{ network.encryption }}</span>
         </div>
         <div>
-          <span v-if="network.connected" class="badge rounded-pill align-baseline bg-success me-1">Connected</span>
+          <span v-if="network.connected" class="badge rounded-pill bg-primary">{{connectedNetwork.v4_address}}</span>
+          <span v-if="network.connected" class="badge rounded-pill align-baseline bg-success mx-1">Connected</span>
           <span class="badge rounded-pill align-baseline"
                 :class="rssiToBootstrapBackground(network.rssi)">{{ network.rssi }} dBm</span>
         </div>
       </li>
     </ul>
   </section>
-  <WifiNetworkLogin :network="selectedNetwork" :networks="networks"/>
+  <WifiNetworkLogin :network="selectedNetwork" :networks="networks" @success="init"/>
 </template>
 
 <style scoped>

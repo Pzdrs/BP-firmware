@@ -1,7 +1,7 @@
 <script setup>
-import {computed, ref} from "vue";
+import {computed, onBeforeUnmount, ref, watchEffect} from "vue";
 import {rssiToBootstrapBackground} from "../../utils/wifi";
-import {disconnectFromWifiEndpoint} from "../../axios/endpoints";
+import {connectToWifiEndpoint, disconnectFromWifiEndpoint} from "../../axios/endpoints";
 
 
 const props = defineProps({
@@ -9,8 +9,9 @@ const props = defineProps({
   networks: Object
 });
 
+const emit = defineEmits(['success']);
+
 const loading = ref(false);
-const result = ref('');
 
 const network = computed(() => {
   return props.networks.find(_network => _network.mac === props.network);
@@ -21,7 +22,7 @@ const networkSelected = computed(() => {
 });
 
 const actionButtonDisabled = computed(() => {
-  return loading.value || result.value.length !== 0;
+  return loading.value;
 });
 
 function handleSubmit(event) {
@@ -29,15 +30,32 @@ function handleSubmit(event) {
   if (network.value.connected) {
     disconnectFromWifiEndpoint.post().then(() => {
       loading.value = false;
-      result.value = `Disconnected from ${network.value.ssid} network`;
+      alert(`Disconnected from ${network.value.ssid} network`);
+      emit('success');
     });
   } else {
-    const username = event.target.username.value;
+    const ssid = network.value.ssid;
     const password = event.target.password.value;
-    console.log(username, password);
+
+    const formData = new URLSearchParams();
+
+    formData.append('ssid', ssid);
+    formData.append('password', password);
+
+    connectToWifiEndpoint.post(formData)
+        .then(() => {
+          alert(`Connected to ${ssid} network`);
+          emit('success');
+        })
+        .catch(() => {
+          alert(`Couldn't connect to ${ssid} network`);
+        })
+        .finally(() => {
+          event.target.password.value = '';
+          loading.value = false;
+        });
   }
 }
-
 </script>
 
 <template>
@@ -61,19 +79,13 @@ function handleSubmit(event) {
             </div>
           </div>
           <div class="modal-body">
-            <div v-if="result.length !== 0" class="alert alert-danger" role="alert">
-              {{ result }}
-            </div>
             <section v-if="network.connected">
               <p>
                 You're connected to this network
               </p>
             </section>
             <section v-else>
-              <div class="row mb-3">
-                <div class="col">
-                  <input type="text" name="username" class="form-control" placeholder="Username" required>
-                </div>
+              <div class="row">
                 <div class="col">
                   <input type="password" name="password" class="form-control" placeholder="Password" required>
                 </div>
