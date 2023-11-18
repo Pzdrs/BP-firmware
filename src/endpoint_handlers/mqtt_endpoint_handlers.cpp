@@ -1,25 +1,24 @@
 #include <nlohmann/json.hpp>
 #include "mqtt_endpoint_handlers.hpp"
-
-using json = nlohmann::json;
+#include "web_server.hpp"
 
 void testMqtt(AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", json({{"success", true}}).dump().c_str());
+    request->send(200, "text/plain", JSON{{"success", true}}.dump().c_str());
 }
 
 void updateMqttConfig(AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", json({{"success", true}}).dump().c_str());
+    request->send(200, "text/plain", JSON{{"success", true}}.dump().c_str());
 }
 
 void mqttConfig(AsyncWebServerRequest *request) {
     request->send(
             200,
             "application/json",
-            json({
-                         {"server", "server"},
-                         {"port", "port"},
-                         {"username", "user"},
-                         {"password", "pass"},
-                 }).dump().c_str()
+            JSON{
+                    {"server",   "server"},
+                    {"port",     "port"},
+                    {"username", "user"},
+                    {"password", "pass"},
+            }.dump().c_str()
     );
 }

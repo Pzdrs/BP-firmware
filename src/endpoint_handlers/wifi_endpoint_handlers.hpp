@@ -1,8 +1,9 @@
 #include "ESPAsyncWebServer.h"
 
-void wifiStatus(AsyncWebServerRequest *request);
+#define SSID_PARAM "ssid"
+#define PASSWORD_PARAM "password"
 
-void refreshNetworks(AsyncWebServerRequest *request);
+void wifiStatus(AsyncWebServerRequest *request);
 
 void toggleWifi(AsyncWebServerRequest *request);
 

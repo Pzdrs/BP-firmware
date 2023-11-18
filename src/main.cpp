@@ -1,7 +1,12 @@
 #include <LittleFS.h>
 #include <WiFi.h>
 #include "web_server.hpp"
+#include "TinyGPS++.h"
 
+#define LOCAL_IP IPAddress(192, 168, 0, 1)
+#define SLASH_24 IPAddress(255, 255, 255, 0)
+
+TinyGPSPlus gps;
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
     Serial.printf("Listing directory: %s\r\n", dirname);
@@ -48,6 +53,7 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
 }
 
 void setup() {
+    Serial1.begin(9600);
     Serial.begin(115200);
 
     if (!LittleFS.begin(true)) {
@@ -55,18 +61,15 @@ void setup() {
         return;
     }
 
-    listDir(LittleFS, "/", 0);
-
     WiFi.begin("IOT", "remeslovkostce_iot");
 
-    while (WiFi.status() != WL_CONNECTED) {
+    while (WiFiClass::status() != WL_CONNECTED) {
         delay(1000);
         Serial.println("Connecting to WiFi..");
     }
 
-    // setup hotspot
-    WiFi.softAPConfig(IPAddress(192, 168, 0, 1), IPAddress(192, 168, 0, 1), IPAddress(255, 255, 255, 0));
-    WiFi.softAP("ESP32-Access-Point", "123456789");
+    WiFi.softAPConfig(LOCAL_IP, LOCAL_IP, SLASH_24);
+    WiFi.softAP(("ESGPS-" + WiFi.macAddress()).c_str());
 
     Serial.println(WiFi.localIP());
 
@@ -76,7 +79,7 @@ void setup() {
 }
 
 void loop() {
-
+    while (Serial1.available() > 0) gps.encode(Serial1.read());
 }
 
 

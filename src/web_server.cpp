@@ -1,9 +1,23 @@
+#include "web_server.hpp"
 #include <LittleFS.h>
 #include "ESPAsyncWebServer.h"
 #include "endpoint_handlers/wifi_endpoint_handlers.hpp"
 #include "endpoint_handlers/mqtt_endpoint_handlers.hpp"
+#include "wifi_utils.hpp"
 
 AsyncWebServer server(80);
+
+void status(AsyncWebServerRequest *request) {
+    request->send(200, "application/json", JSON(
+            {
+                    {"wifi", JSON{
+                            {"enabled", true},
+                            {"network", getCurrentWifiNetwork()}
+                    }}
+            }
+    ).dump().c_str());
+}
+
 
 void home(AsyncWebServerRequest *request) {
     request->send(LittleFS, "/index.html", "text/html");
@@ -30,8 +44,8 @@ void attachWebRoutes() {
     // The main front end entry point
     server.on("/", HTTP_GET, home);
 
-    // API endpoints
-    server.on(wl("/refresh").c_str(), HTTP_POST, refreshNetworks);
+    server.on(api("/status").c_str(), HTTP_GET, status);
+
     server.on(wl("/disconnect").c_str(), HTTP_POST, disconnectWifi);
     server.on(wl("/connect").c_str(), HTTP_POST, connectWifi);
     server.on(wl("/toggle-state").c_str(), HTTP_POST, toggleWifi);
