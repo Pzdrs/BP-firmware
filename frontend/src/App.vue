@@ -1,24 +1,18 @@
 <script setup>
-
-import WifiIcon from "./components/WifiIcon.vue";
-import CellularIcon from "./components/CellularIcon.vue";
 import ConfigurationTabs from "./components/ConfigurationTabs.vue";
 import ConnectivitySection from "./components/configuration-section/ConnectivitySection.vue";
-import DataTransmissionSection from "./components/configuration-section/DataTransmissionSection.vue";
 import StatusBar from "./components/StatusBar.vue";
 import TimeStatus from "./components/TimeStatus.vue";
+
 
 const defaultSection = 'connectivity';
 const sections = [
   {
     id: 'connectivity',
     component: ConnectivitySection
-  },
-  {
-    id: 'data-transmission',
-    component: DataTransmissionSection
   }
 ];
+
 
 </script>
 

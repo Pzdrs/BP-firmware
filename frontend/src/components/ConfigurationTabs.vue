@@ -8,11 +8,6 @@ const tabs = [
     id: 'connectivity',
     label: 'Connectivity',
     icon: 'md-comparearrows'
-  },
-  {
-    id: 'data-transmission',
-    label: 'Data transmission',
-    icon: 'md-comparearrows'
   }
 ];
 
