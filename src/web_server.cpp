@@ -61,6 +61,7 @@ void attachWebRoutes() {
     server.on(mqtt("/test").c_str(), HTTP_GET, testMqtt);
     server.on(mqtt("").c_str(), HTTP_GET, mqttConfig);
     server.on(mqtt("").c_str(), HTTP_POST, updateMqttConfig);
+    server.on(mqtt("").c_str(), HTTP_DELETE, clearMqttConfig);
 
 
     // Static content

@@ -3,8 +3,11 @@
 #include "web_server.hpp"
 #include "TinyGPS++.h"
 
+
 #define LOCAL_IP IPAddress(192, 168, 0, 1)
 #define SLASH_24 IPAddress(255, 255, 255, 0)
+
+#define GNSS_DATA_SUBMIT_PERIOD 1000
 
 TinyGPSPlus gps;
 
@@ -79,7 +82,16 @@ void setup() {
 }
 
 void loop() {
+    static uint32_t lastMillis;
+    unsigned long currentMillis = millis();
+
     while (Serial1.available() > 0) gps.encode(Serial1.read());
+
+    // GNSS data submission
+    if (currentMillis - lastMillis >= GNSS_DATA_SUBMIT_PERIOD) {
+        lastMillis = currentMillis;
+        Serial.println("Submitting DNSS data");
+    }
 }
 
 
