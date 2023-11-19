@@ -11,8 +11,15 @@ void status(AsyncWebServerRequest *request) {
     request->send(200, "application/json", JSON(
             {
                     {"wifi", JSON{
-                            {"enabled", true},
-                            {"network", getCurrentWifiNetwork()}
+                            {"connected", true},
+                            {"rssi",      -25}
+                    }},
+                    {"cellular", JSON{
+                            {"connected", true},
+                            {"rssi",      -25}
+                    }},
+                    {"gnss", JSON{
+                            {"satellites", 10}
                     }}
             }
     ).dump().c_str());
