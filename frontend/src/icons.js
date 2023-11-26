@@ -1,6 +1,6 @@
 import {OhVueIcon, addIcons} from "oh-vue-icons";
 import {
-    MdComparearrows,
+    MdComparearrows, MdRestartalt,
     MdSignalcellularalt, MdSignalcellularoff,
     MdWifi, MdWifi1Bar, MdWifi2Bar, MdWifioff
 } from "oh-vue-icons/icons/md";
@@ -13,6 +13,7 @@ addIcons(
     MdComparearrows,
     HiRefresh,
     GiSattelite,
+    MdRestartalt
 );
 
 export default OhVueIcon;

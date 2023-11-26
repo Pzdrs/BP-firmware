@@ -4,6 +4,7 @@ import espApi from "./index";
 const Endpoint = EndpointFactory(espApi);
 
 export const statusEndpoint = new Endpoint('/status');
+export const restartEndpoint = new Endpoint('/power/restart');
 
 export const mqttConfigEndpoint = new Endpoint('/mqtt');
 export const mqttTestEndpoint = new Endpoint('/mqtt/test');

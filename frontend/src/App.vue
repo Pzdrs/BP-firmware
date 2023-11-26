@@ -3,6 +3,7 @@ import ConfigurationTabs from "./components/ConfigurationTabs.vue";
 import ConnectivitySection from "./components/configuration-section/ConnectivitySection.vue";
 import StatusBar from "./components/StatusBar.vue";
 import TimeStatus from "./components/TimeStatus.vue";
+import RestartButton from "./components/RestartButton.vue";
 
 
 const defaultSection = 'connectivity';
@@ -27,6 +28,7 @@ const sections = [
       </div>
       <StatusBar/>
       <div class="col-md-3 text-end">
+        <RestartButton class="me-1"/>
         <TimeStatus/>
       </div>
     </header>
