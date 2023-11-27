@@ -1,8 +1,5 @@
 #include "mqtt_endpoint_handlers.hpp"
 #include "web_server.hpp"
-#include "Preferences.h"
-
-Preferences preferences;
 
 JSON getMqttConfig() {
     preferences.begin("mqtt", true);
@@ -24,7 +21,10 @@ void updateProperty(const String &key, AsyncWebServerRequest *request) {
 }
 
 void testMqtt(AsyncWebServerRequest *request) {
+    preferences.begin("mqtt", true);
+
     request->send(200, "text/plain", JSON{{"success", true}}.dump().c_str());
+    preferences.end();
 }
 
 void clearMqttConfig(AsyncWebServerRequest *request) {

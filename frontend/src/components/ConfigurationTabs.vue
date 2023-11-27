@@ -1,15 +1,8 @@
 <script setup>
 const props = defineProps({
+  tabs: Array,
   currentTab: String
 });
-
-const tabs = [
-  {
-    id: 'connectivity',
-    label: 'Connectivity',
-    icon: 'md-comparearrows'
-  }
-];
 
 function isCurrentTab(tabId) {
   return props.currentTab === tabId;

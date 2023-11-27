@@ -6,11 +6,13 @@
 #include "wifi_utils.hpp"
 
 AsyncWebServer server(80);
+AsyncWebSocket gnssWs("/gnss");
+Preferences preferences;
 
 void status(AsyncWebServerRequest *request) {
     request->send(200, "application/json", JSON(
             {
-                    {"wifi", JSON{
+                    {"wifi",     JSON{
                             {"connected", true},
                             {"rssi",      -25}
                     }},
@@ -18,7 +20,7 @@ void status(AsyncWebServerRequest *request) {
                             {"connected", true},
                             {"rssi",      -25}
                     }},
-                    {"gnss", JSON{
+                    {"gnss",     JSON{
                             {"satellites", 10}
                     }}
             }
@@ -42,16 +44,45 @@ String mqtt(const String &route) {
     return api("/mqtt" + route);
 }
 
-void attachWebRoutes() {
-    // CORS preflight workaround
-    server.on("*", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
-        request->send(200);
-    });
+void onEvent(AsyncWebSocket *webSocket,
+             AsyncWebSocketClient *client,
+             AwsEventType type,
+             void *arg,
+             uint8_t *data,
+             size_t len) {
 
+    switch (type) {
+        case WS_EVT_CONNECT:
+            Serial.printf("WebSocket client #%u connected from %s\n", client->id(),
+                          client->remoteIP().toString().c_str());
+            break;
+        case WS_EVT_DISCONNECT:
+            Serial.printf("WebSocket client #%u disconnected\n", client->id());
+            break;
+        case WS_EVT_DATA:
+        case WS_EVT_PONG:
+        case WS_EVT_ERROR:
+            break;
+    }
+}
+
+void setupWebSockets() {
+    gnssWs.onEvent(onEvent);
+    server.addHandler(&gnssWs);
+}
+
+void attachWebRoutes() {
     // The main front end entry point
     server.on("/", HTTP_GET, home);
+    // Static content
+    server.serveStatic("/assets", LittleFS, "/assets");
+
 
     server.on(api("/status").c_str(), HTTP_GET, status);
+    server.on(api("/power/restart").c_str(), HTTP_POST, [](AsyncWebServerRequest *request) {
+        request->send(200, "application/json", JSON{{"success", true}}.dump().c_str());
+        ESP.restart();
+    });
 
     server.on(wl("/disconnect").c_str(), HTTP_POST, disconnectWifi);
     server.on(wl("/connect").c_str(), HTTP_POST, connectWifi);
@@ -63,11 +94,9 @@ void attachWebRoutes() {
     server.on(mqtt("").c_str(), HTTP_POST, updateMqttConfig);
     server.on(mqtt("").c_str(), HTTP_DELETE, clearMqttConfig);
 
+}
 
-    // Static content
-    server.serveStatic("/assets", LittleFS, "/assets");
-
-    // Handlers
+void attachHandlers() {
     server.onNotFound([](AsyncWebServerRequest *request) {
         request->send(404, "text/plain", "Nemame pane");
     });
@@ -77,11 +106,18 @@ void setupCors() {
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
+
+    // CORS preflight workaround
+    server.on("*", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+        request->send(200);
+    });
 }
 
 void setupWebServer() {
     setupCors();
+    setupWebSockets();
     attachWebRoutes();
+    attachHandlers();
     server.begin();
 }
 

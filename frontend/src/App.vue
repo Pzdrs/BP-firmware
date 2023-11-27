@@ -4,17 +4,28 @@ import ConnectivitySection from "./components/configuration-section/Connectivity
 import StatusBar from "./components/StatusBar.vue";
 import TimeStatus from "./components/TimeStatus.vue";
 import RestartButton from "./components/RestartButton.vue";
+import GNSSSection from "./components/configuration-section/GNSSSection.vue";
 
 
-const defaultSection = 'connectivity';
+const currentTab = 'gnss';
 const sections = [
   {
     id: 'connectivity',
+    label: 'Connectivity',
+    icon: 'md-comparearrows',
     component: ConnectivitySection
+  },
+  {
+    id: 'gnss',
+    label: 'GNSS',
+    icon: 'md-gpsfixed',
+    component: GNSSSection
   }
 ];
 
-
+function isCurrentTab(tabId) {
+  return currentTab === tabId;
+}
 </script>
 
 <template>
@@ -36,11 +47,20 @@ const sections = [
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-10">
-        <ConfigurationTabs current-tab="connectivity"/>
+        <ul class="nav nav-tabs justify-content-center" id="tab">
+          <li class="nav-item" role="presentation" v-for="tab in sections" :key="tab.id">
+            <button class="nav-link" :class="isCurrentTab(tab.id)?'active': ''" data-bs-toggle="tab"
+                    :data-bs-target="`#${tab.id}`" type="button"
+                    role="tab">
+              <Icon :name="tab.icon" scale="1.25"/>
+              {{ tab.label }}
+            </button>
+          </li>
+        </ul>
         <div class="tab-content">
           <div v-for="section in sections"
                :key="section.id"
-               class="tab-pane fade" :class="section.id === defaultSection?'show active':''" :id="section.id"
+               class="tab-pane fade" :class="section.id === currentTab?'show active':''" :id="section.id"
                role="tabpanel">
             <div class="container mt-3">
               <div class="row">
