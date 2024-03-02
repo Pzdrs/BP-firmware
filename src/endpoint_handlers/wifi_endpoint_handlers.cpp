@@ -35,6 +35,7 @@ void toggleWifi(AsyncWebServerRequest *request) {
 
 void disconnectWifi(AsyncWebServerRequest *request) {
     bool result = WiFi.disconnect();
+    digitalWrite(2, LOW); // turn off the LED
     request->send(
             200,
             "application/json",
@@ -69,6 +70,7 @@ void connectWifi(AsyncWebServerRequest *request) {
     }
 
     if (WiFiClass::status() == WL_CONNECTED) {
+        digitalWrite(2, HIGH); // turn on the LED
         request->send(
                 200,
                 "application/json",

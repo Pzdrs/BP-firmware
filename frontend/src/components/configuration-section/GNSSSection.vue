@@ -2,13 +2,20 @@
 import {ref} from "vue";
 
 const positionFixed = ref(true);
+const longitude = ref(0);
+const latitude = ref(0);
+const altitude = ref(0);
 
-const socket = new WebSocket(`ws://10.30.0.110/gnss`);
+const socket = new WebSocket(`ws://${window.location.hostname}/gnss`);
 socket.onopen = () => {
   console.log('connected');
 };
 socket.onmessage = (event) => {
-  console.log(event.data);
+  const data = JSON.parse(event.data);
+  console.log(data);
+  longitude.value = data.lng;
+  latitude.value = data.lat;
+  altitude.value = data.alt;
 };
 
 </script>
@@ -21,12 +28,11 @@ socket.onmessage = (event) => {
   <hr>
   <section class="d-flex justify-content-between">
     <section>
-      <b>Longitude:</b><br>
-      <b>Latitude:</b><br>
-      <b>Altitude:</b><br>
+      <b>Longitude:</b> {{longitude}}<br>
+      <b>Latitude:</b> {{ latitude}}<br>
+      <b>Altitude:</b> {{altitude}}<br>
     </section>
   </section>
-
 </template>
 
 <style scoped>
