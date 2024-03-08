@@ -80,6 +80,12 @@ void connectWifi(AsyncWebServerRequest *request) {
                      }
                 ).dump().c_str()
         );
+
+        Serial.println("Saving wifi credentials");
+        preferences.begin("wifi", false);
+        preferences.putString("ssid", ssid);
+        preferences.putString("password", password);
+        preferences.end();
     } else {
         request->send(
                 400,

@@ -24,50 +24,6 @@ TinyGPSPlus gps;
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
-void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
-    Serial.printf("Listing directory: %s\r\n", dirname);
-
-    File root = fs.open(dirname);
-    if (!root) {
-        Serial.println("- failed to open directory");
-        return;
-    }
-    if (!root.isDirectory()) {
-        Serial.println(" - not a directory");
-        return;
-    }
-
-    File file = root.openNextFile();
-    while (file) {
-        if (file.isDirectory()) {
-            Serial.print("  DIR : ");
-
-            Serial.print(file.name());
-            time_t t = file.getLastWrite();
-            struct tm *tmstruct = localtime(&t);
-            Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900,
-                          (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
-                          tmstruct->tm_sec);
-
-            if (levels) {
-                listDir(fs, file.name(), levels - 1);
-            }
-        } else {
-            Serial.print("  FILE: ");
-            Serial.print(file.name());
-            Serial.print("  SIZE: ");
-
-            Serial.print(file.size());
-            time_t t = file.getLastWrite();
-            struct tm *tmstruct = localtime(&t);
-            Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n", (tmstruct->tm_year) + 1900,
-                          (tmstruct->tm_mon) + 1, tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
-                          tmstruct->tm_sec);
-        }
-        file = root.openNextFile();
-    }
-}
-
 bool isIpAddress(const String &str) {
     for (int i = 0; i < str.length(); i++) {
         if (str.charAt(i) == '.') continue;
@@ -76,42 +32,42 @@ bool isIpAddress(const String &str) {
     return true;
 }
 
-void setup() {
-    Serial1.begin(9600);
-    Serial.begin(115200);
+bool attemptWifiAutoConnect() {
+    preferences.begin("wifi", false);
+    auto ssid = preferences.isKey("ssid") ? preferences.getString("ssid") : "";
+    auto password = preferences.isKey("password") ? preferences.getString("password") : "";
+    preferences.end();
 
-    // LED init
-    for (const auto &item: ledPins) {
-        pinMode(item, OUTPUT);
-        digitalWrite(item, LOW);
+    if (ssid.length() > 0) {
+        Serial.println("Found saved WiFi credentials");
+        WiFi.begin(ssid.c_str(), password.c_str());
+
+        int tries = 0;
+        do {
+            Serial.println("Connecting to WiFi..");
+            tries++;
+            delay(1000);
+        } while (WiFiClass::status() != WL_CONNECTED && tries < 5);
+
+        if (WiFiClass::status() == WL_CONNECTED) {
+            Serial.println("Connected to " + WiFi.SSID());
+            digitalWrite(WIFI_LED, HIGH);
+            return true;
+        } else {
+            Serial.println("Failed to connect to " + ssid);
+        }
+        return false;
     }
+    Serial.println("No saved WiFi credentials found");
+    return false;
+}
 
-    if (!LittleFS.begin(true)) {
-        Serial.println("LittleFS Mount Failed");
-        return;
-    }
-
-    WiFi.begin("IOT", "remeslovkostce_iot");
-
-    while (WiFiClass::status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.println("Connecting to WiFi..");
-    }
-    digitalWrite(WIFI_LED, HIGH);
-
-    WiFi.softAPConfig(LOCAL_IP, LOCAL_IP, SLASH_24);
-
-    Serial.println(WiFi.localIP());
-
-    WiFi.scanNetworks(true);
-
-    setupWebServer();
-
+void setupMqtt() {
     preferences.begin("mqtt", true);
     String username = preferences.getString("username");
     String password = preferences.getString("password");
     String broker = preferences.getString("server");
-    uint16_t port = 1883;// preferences.getString("port").toInt();
+    uint16_t port = preferences.getString("port").toInt();
 
     Serial.println(username);
     Serial.println(password);
@@ -136,6 +92,30 @@ void setup() {
     Serial.println(mqttClient.state());
 
     preferences.end();
+}
+
+void setup() {
+    Serial1.begin(9600);
+    Serial.begin(115200);
+
+    // LED init
+    for (const auto &item: ledPins) {
+        pinMode(item, OUTPUT);
+        digitalWrite(item, LOW);
+    }
+
+    if (!LittleFS.begin(true)) {
+        Serial.println("LittleFS Mount Failed");
+        return;
+    }
+
+    // WiFi
+    WiFi.scanNetworks(true);
+    WiFi.softAPConfig(LOCAL_IP, LOCAL_IP, SLASH_24);
+    bool wifiConnected = attemptWifiAutoConnect();
+
+    if (wifiConnected) setupMqtt();
+    setupWebServer();
 }
 
 
@@ -166,7 +146,10 @@ void loop() {
         delay(10);
     }
 
-    if (lastMillisMqttLed != 0 && currentMillis - lastMillisMqttLed >= MQTT_LED_BLINK_PERIOD) {
+    if (
+            WiFiClass::status() == WL_CONNECTED &&
+            (lastMillisMqttLed != 0 && currentMillis - lastMillisMqttLed >= MQTT_LED_BLINK_PERIOD)
+            ) {
         digitalWrite(PUBLISH_LED, LOW);
         lastMillisMqttLed = 0;
     }
@@ -176,7 +159,6 @@ void loop() {
 
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisWs = currentMillis;
-        Serial.println("Sending data to WS");
         JSON location = {
                 {"type", "location"},
                 {"data", JSON{
@@ -187,11 +169,10 @@ void loop() {
                         {"course", gps.course.deg()}
                 }}
         };
-        Serial.println(location.dump().c_str());
         gnssWs.textAll(location.dump().c_str());
     }
 
-    if (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD) {
+    if (WiFiClass::status() == WL_CONNECTED && (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD)) {
         lastMillisMqtt = currentMillis;
         lastMillisMqttLed = currentMillis;
         digitalWrite(PUBLISH_LED, HIGH);
