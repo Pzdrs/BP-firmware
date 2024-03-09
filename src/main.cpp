@@ -160,16 +160,21 @@ void loop() {
         gps.encode(data);
     }
 
+    if (!gps.location.isUpdated()) return;
+
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisWs = currentMillis;
         JSON location = {
                 {"type", "location"},
                 {"data", JSON{
-                        {"lat",    gps.location.lat()},
-                        {"lng",    gps.location.lng()},
-                        {"alt",    gps.altitude.meters()},
-                        {"speed",  gps.speed.kmph()},
-                        {"course", gps.course.deg()}
+                        {"lat",        gps.location.lat()},
+                        {"lng",        gps.location.lng()},
+                        {"alt",        gps.altitude.meters()},
+                        {"speed",      gps.speed.kmph()},
+                        {"course",     gps.course.deg()},
+                        {"satellites", gps.satellites.value()},
+                        {"valid",      gps.location.isValid() ? "true" : "false"}
+
                 }}
         };
         Serial.println(location.dump().c_str());
