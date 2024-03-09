@@ -95,7 +95,7 @@ void setupMqtt() {
 }
 
 void setup() {
-    Serial1.begin(9600);
+    Serial1.begin(9600, SERIAL_8N1, 16, 17);
     Serial.begin(115200);
 
     // LED init
@@ -155,7 +155,10 @@ void loop() {
     }
 
 
-    while (Serial1.available() > 0) gps.encode(Serial1.read());
+    if (Serial1.available()) {
+        auto data = Serial1.read();
+        gps.encode(data);
+    }
 
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisWs = currentMillis;
@@ -169,6 +172,7 @@ void loop() {
                         {"course", gps.course.deg()}
                 }}
         };
+        Serial.println(location.dump().c_str());
         gnssWs.textAll(location.dump().c_str());
     }
 
