@@ -1,36 +1,34 @@
 <script setup>
 import {ref} from "vue";
 
-const positionFixed = ref(true);
+const positionFixed = ref('');
 const longitude = ref(0);
 const latitude = ref(0);
 const altitude = ref(0);
 
 const socket = new WebSocket(`ws://${window.location.hostname}/gnss`);
-socket.onopen = () => {
-  console.log('connected');
-};
 socket.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log(data);
-  longitude.value = data.lng;
-  latitude.value = data.lat;
-  altitude.value = data.alt;
+  longitude.value = data.data.lng;
+  latitude.value = data.data.lat;
+  altitude.value = data.data.alt;
+  positionFixed.value = data.data.fix;
 };
 
 </script>
 
 <template>
   <section class="text-center">
-    <h2 v-if="positionFixed" class="text-success">POSITION FIXED</h2>
-    <h2 v-else class="text-danger">NO FIX</h2>
+    <h2 v-if="positionFixed === '3d'" class="text-success">POSITION FIXED (3D)</h2>
+    <h2 v-else-if="positionFixed === '2d'" class="text-primary">POSITION FIXED (2D)</h2>
+    <h2 v-else class="text-danger">ACQUIRING FIX</h2>
   </section>
   <hr>
-  <section class="d-flex justify-content-between">
+  <section class="d-flex justify-content-center">
     <section>
-      <b>Longitude:</b> {{longitude}}<br>
-      <b>Latitude:</b> {{ latitude}}<br>
-      <b>Altitude:</b> {{altitude}}<br>
+      <b>Longitude:</b> {{ longitude }}<br>
+      <b>Latitude:</b> {{ latitude }}<br>
+      <b>Altitude:</b> {{ altitude }}<br>
     </section>
   </section>
 </template>
