@@ -47,10 +47,10 @@ bool attemptWifiAutoConnect() {
             Serial.println("Connecting to WiFi..");
             tries++;
             delay(1000);
-        } while (WiFiClass::status() != WL_CONNECTED && tries < 5);
+        } while (WiFiClass::status() != WL_CONNECTED && tries < 15);
 
         if (WiFiClass::status() == WL_CONNECTED) {
-            Serial.println("Connected to " + WiFi.SSID());
+            Serial.println("Connected to " + WiFi.SSID() + " (" + WiFi.localIP().toString() + ")");
             digitalWrite(WIFI_LED, HIGH);
             return true;
         } else {
@@ -69,11 +69,6 @@ void setupMqtt() {
     String broker = preferences.getString("server");
     uint16_t port = preferences.getString("port").toInt();
 
-    Serial.println(username);
-    Serial.println(password);
-    Serial.println(broker);
-    Serial.println(port);
-
     if (isIpAddress(broker)) {
         IPAddress ip;
         if (ip.fromString(broker)) {
@@ -88,8 +83,6 @@ void setupMqtt() {
     } else {
         Serial.println("Failed to connect to MQTT");
     }
-
-    Serial.println(mqttClient.state());
 
     preferences.end();
 }
@@ -160,6 +153,12 @@ void loop() {
         gps.encode(data);
     }
 
+    if(gps.satellites.value() >= 4) {
+        digitalWrite(GNSS_FIX_LED, HIGH);
+    } else {
+        digitalWrite(GNSS_FIX_LED, LOW);
+    }
+
     if (!gps.location.isUpdated()) return;
 
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
@@ -181,7 +180,7 @@ void loop() {
         gnssWs.textAll(location.dump().c_str());
     }
 
-    if (WiFiClass::status() == WL_CONNECTED && (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD)) {
+    if (WiFiClass::status() == WL_CONNECTED && mqttClient.connected() && (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD)) {
         lastMillisMqtt = currentMillis;
         lastMillisMqttLed = currentMillis;
         digitalWrite(PUBLISH_LED, HIGH);

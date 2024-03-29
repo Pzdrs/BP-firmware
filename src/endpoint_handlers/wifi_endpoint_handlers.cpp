@@ -35,7 +35,13 @@ void toggleWifi(AsyncWebServerRequest *request) {
 
 void disconnectWifi(AsyncWebServerRequest *request) {
     bool result = WiFi.disconnect();
-    digitalWrite(2, LOW); // turn off the LED
+    if(result) {
+        digitalWrite(2, LOW); // turn off the LED
+        preferences.begin("wifi", false);
+        preferences.remove("ssid");
+        preferences.remove("password");
+        preferences.end();
+    }
     request->send(
             200,
             "application/json",

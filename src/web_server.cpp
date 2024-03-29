@@ -81,6 +81,7 @@ void attachWebRoutes() {
     server.on(api("/status").c_str(), HTTP_GET, status);
     server.on(api("/power/restart").c_str(), HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", JSON{{"success", true}}.dump().c_str());
+        sleep(1);
         ESP.restart();
     });
 
