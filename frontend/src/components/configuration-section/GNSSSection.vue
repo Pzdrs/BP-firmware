@@ -1,7 +1,7 @@
 <script setup>
 import {ref} from "vue";
 
-const positionFixed = ref('');
+const fix = ref('');
 const longitude = ref(0);
 const latitude = ref(0);
 const altitude = ref(0);
@@ -12,15 +12,15 @@ socket.onmessage = (event) => {
   longitude.value = data.data.lng;
   latitude.value = data.data.lat;
   altitude.value = data.data.alt;
-  positionFixed.value = data.data.fix;
+  fix.value = data.data.satellites >= 4 ? '3d' : (data.data.satellites === 3 ? '2d' : 'no-fix');
 };
 
 </script>
 
 <template>
   <section class="text-center">
-    <h2 v-if="positionFixed === '3d'" class="text-success">POSITION FIXED (3D)</h2>
-    <h2 v-else-if="positionFixed === '2d'" class="text-primary">POSITION FIXED (2D)</h2>
+    <h2 v-if="fix === '3d'" class="text-success">POSITION FIXED (3D)</h2>
+    <h2 v-else-if="fix === '2d'" class="text-primary">POSITION FIXED (2D)</h2>
     <h2 v-else class="text-danger">ACQUIRING FIX</h2>
   </section>
   <hr>

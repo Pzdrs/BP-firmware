@@ -4,6 +4,9 @@
 #include "TinyGPS++.h"
 #include "PubSubClient.h"
 #include "ezButton.h"
+#include "MPU6050.h"
+#include "Wire.h"
+
 
 #define LOCAL_IP IPAddress(192, 168, 0, 1)
 #define SLASH_24 IPAddress(255, 255, 255, 0)
@@ -18,11 +21,13 @@
 
 const int ledPins[] = {HOTSPOT_LED, WIFI_LED, GNSS_FIX_LED, PUBLISH_LED};
 
+
 ezButton hotspotButton(15);
 
 TinyGPSPlus gps;
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+MPU6050 accelgyro;
 
 bool isIpAddress(const String &str) {
     for (int i = 0; i < str.length(); i++) {
@@ -62,7 +67,7 @@ bool attemptWifiAutoConnect() {
     return false;
 }
 
-void setupMqtt() {
+void connectMQTT() {
     preferences.begin("mqtt", true);
     String username = preferences.getString("username");
     String password = preferences.getString("password");
@@ -78,7 +83,7 @@ void setupMqtt() {
         mqttClient.setServer(broker.c_str(), port);
     }
 
-    if (mqttClient.connect("ESP", username.c_str(), password.c_str())) {
+    if (mqttClient.connect(("ESGPS-" + WiFi.macAddress()).c_str(), username.c_str(), password.c_str())) {
         Serial.println("Connected to MQTT");
     } else {
         Serial.println("Failed to connect to MQTT");
@@ -88,8 +93,19 @@ void setupMqtt() {
 }
 
 void setup() {
+    Wire.begin();
+
+    // initialize device
+    Serial.println("Initializing I2C devices...");
+    accelgyro.initialize();
+
+    // verify connection
+    Serial.println("Testing device connections...");
+    Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
     Serial1.begin(9600, SERIAL_8N1, 16, 17);
     Serial.begin(115200);
+    Wire.begin();
 
     // LED init
     for (const auto &item: ledPins) {
@@ -107,17 +123,37 @@ void setup() {
     WiFi.softAPConfig(LOCAL_IP, LOCAL_IP, SLASH_24);
     bool wifiConnected = attemptWifiAutoConnect();
 
-    if (wifiConnected) setupMqtt();
+    if (wifiConnected) connectMQTT();
     setupWebServer();
 }
 
 
 void loop() {
-    static uint32_t lastMillisMqtt, lastMillisWs, lastMillisMqttLed;
+    static uint32_t lastMillisMqtt, lastMillisWs, lastMillisMqttLed, lastMillisMotion;
     static bool hotspotButtonWasPressed, hotspotState;
     unsigned long currentMillis = millis();
+    float accel_magnitude = sqrt(pow(accelgyro.getAccelerationX(), 2) + pow(accelgyro.getAccelerationY(), 2) +
+                                 pow(accelgyro.getAccelerationZ(), 2)) / 16384.0;
+    static bool inMotion = true;
+    static int motionlessCounter = 0;
 
     hotspotButton.loop();
+
+    if (currentMillis - lastMillisMotion >= 1000) {
+        if (inMotion) {
+            if (motionlessCounter > 5) {
+                Serial.println("Not in motion");
+                inMotion = false;
+            } else motionlessCounter++;
+        } else {
+            if (accel_magnitude > 1.07) {
+                Serial.println("In motion");
+                motionlessCounter = 0;
+                inMotion = true;
+            }
+        }
+        lastMillisMotion = currentMillis;
+    }
 
     if (hotspotButton.isPressed()) {
         hotspotButtonWasPressed = true;
@@ -139,27 +175,21 @@ void loop() {
         delay(10);
     }
 
-    if (
-            WiFiClass::status() == WL_CONNECTED &&
-            (lastMillisMqttLed != 0 && currentMillis - lastMillisMqttLed >= MQTT_LED_BLINK_PERIOD)
-            ) {
+    if (lastMillisMqttLed != 0 && currentMillis - lastMillisMqttLed >= MQTT_LED_BLINK_PERIOD) {
         digitalWrite(PUBLISH_LED, LOW);
         lastMillisMqttLed = 0;
     }
-
 
     if (Serial1.available()) {
         auto data = Serial1.read();
         gps.encode(data);
     }
 
-    if(gps.satellites.value() >= 4) {
+    if (gps.satellites.value() >= 4) {
         digitalWrite(GNSS_FIX_LED, HIGH);
     } else {
         digitalWrite(GNSS_FIX_LED, LOW);
     }
-
-    if (!gps.location.isUpdated()) return;
 
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisWs = currentMillis;
@@ -171,28 +201,39 @@ void loop() {
                         {"alt",        gps.altitude.meters()},
                         {"speed",      gps.speed.kmph()},
                         {"course",     gps.course.deg()},
-                        {"satellites", gps.satellites.value()},
-                        {"valid",      gps.location.isValid() ? "true" : "false"}
-
+                        {"satellites", gps.satellites.value()}
                 }}
         };
         Serial.println(location.dump().c_str());
         gnssWs.textAll(location.dump().c_str());
     }
 
-    if (WiFiClass::status() == WL_CONNECTED && mqttClient.connected() && (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD)) {
+    if (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisMqtt = currentMillis;
         lastMillisMqttLed = currentMillis;
-        digitalWrite(PUBLISH_LED, HIGH);
-        mqttClient.publish("gnss", JSON{
+        auto currentPosition = JSON{
                 {"source", WiFi.macAddress().c_str()},
                 {"lat",    gps.location.lat()},
                 {"lng",    gps.location.lng()},
                 {"alt",    gps.altitude.meters()},
                 {"speed",  gps.speed.kmph()},
                 {"course", gps.course.deg()}
-        }.dump().c_str());
+        };
+        Serial.println(accel_magnitude);
+        if (!gps.location.isUpdated()) goto end;
+        if (!inMotion) goto end;
+        if (WiFiClass::status() == WL_CONNECTED) {
+            if (!mqttClient.connected()) {
+                Serial.println("mqtt kaput");
+                connectMQTT();
+                if (!mqttClient.connected()) goto end;
+            }
+            mqttClient.publish("gnss", currentPosition.dump().c_str());
+            digitalWrite(PUBLISH_LED, HIGH);
+        }
     }
+
+    end:
     mqttClient.loop();
 }
 

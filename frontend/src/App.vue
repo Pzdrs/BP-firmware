@@ -7,7 +7,7 @@ import RestartButton from "./components/RestartButton.vue";
 import GNSSSection from "./components/configuration-section/GNSSSection.vue";
 
 
-const currentTab = 'gnss';
+const currentTab = 'connectivity';
 const sections = [
   {
     id: 'connectivity',
