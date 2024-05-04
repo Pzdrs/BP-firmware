@@ -138,6 +138,7 @@ void loop() {
     static int motionlessCounter = 0;
 
     hotspotButton.loop();
+    mqttClient.loop();
 
     if (currentMillis - lastMillisMotion >= 1000) {
         if (inMotion) {
@@ -219,22 +220,17 @@ void loop() {
                 {"speed",  gps.speed.kmph()},
                 {"course", gps.course.deg()}
         };
-        Serial.println(accel_magnitude);
-        if (!gps.location.isUpdated()) goto end;
-        if (!inMotion) goto end;
-        if (WiFiClass::status() == WL_CONNECTED) {
-            if (!mqttClient.connected()) {
-                Serial.println("mqtt kaput");
-                connectMQTT();
-                if (!mqttClient.connected()) goto end;
-            }
-            mqttClient.publish("gnss", currentPosition.dump().c_str());
-            digitalWrite(PUBLISH_LED, HIGH);
-        }
+        if (!gps.location.isUpdated()) return;
+//        if (WiFiClass::status() == WL_CONNECTED) {
+//            if (!mqttClient.connected()) {
+//                Serial.println("mqtt kaput");
+//                connectMQTT();
+//                if (!mqttClient.connected()) goto end;
+//            }
+//        }
+        mqttClient.publish("gnss", currentPosition.dump().c_str());
+        digitalWrite(PUBLISH_LED, HIGH);
     }
-
-    end:
-    mqttClient.loop();
 }
 
 
