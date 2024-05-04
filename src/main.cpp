@@ -190,7 +190,10 @@ void loop() {
         digitalWrite(GNSS_FIX_LED, HIGH);
     } else {
         digitalWrite(GNSS_FIX_LED, LOW);
+        return;
     }
+
+    if(!gps.location.isValid()) return;
 
     if (currentMillis - lastMillisWs >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisWs = currentMillis;
@@ -209,6 +212,8 @@ void loop() {
         gnssWs.textAll(location.dump().c_str());
     }
 
+    if(!inMotion) return;
+
     if (currentMillis - lastMillisMqtt >= GNSS_DATA_SUBMIT_PERIOD) {
         lastMillisMqtt = currentMillis;
         lastMillisMqttLed = currentMillis;
@@ -220,14 +225,6 @@ void loop() {
                 {"speed",  gps.speed.kmph()},
                 {"course", gps.course.deg()}
         };
-        if (!gps.location.isUpdated()) return;
-//        if (WiFiClass::status() == WL_CONNECTED) {
-//            if (!mqttClient.connected()) {
-//                Serial.println("mqtt kaput");
-//                connectMQTT();
-//                if (!mqttClient.connected()) goto end;
-//            }
-//        }
         mqttClient.publish("gnss", currentPosition.dump().c_str());
         digitalWrite(PUBLISH_LED, HIGH);
     }
